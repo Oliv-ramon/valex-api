@@ -17,7 +17,6 @@ export default async function apiKeyValidationMiddleware(req: Request, res: Resp
   }
 
   res.locals.company = company;
-  console.log(company)
 
   next();
 }
