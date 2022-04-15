@@ -1,12 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 
-import * as errorService from "../services/errorService.js";
+import * as errorService from "../utils/errorUtils.js";
 
 export default function errorHandlerMiddleware(error, _req: Request, res: Response, _next: NextFunction) {
   if (error.type) {
-    const statusCode = errorService.typeToStatusCode(error.type);
     console.log(error);
-    return res.status(error.typeCode).send(error.message);
+    const statusCode = errorService.typeToStatusCode(error.type);
+
+    return res.status(statusCode).send(error.message);
   }
 
   console.log(error);

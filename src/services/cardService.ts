@@ -1,4 +1,4 @@
-import * as errors from "../utils/errorUtils.js";
+import * as errorUtils from "../utils/errorUtils.js";
 import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
@@ -21,20 +21,20 @@ async function validateCardType({ type, employeeId }) {
   ];
 
   if (!cardTypes.includes(type)) {
-    throw errors.unprocessableEntity("card type must be in [groceries, restaurants, transport, education, health]");
+    throw errorUtils.unprocessableEntityError("card type must be in [groceries, restaurants, transport, education, health]");
   }
 
   const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
 
   if (cardWithTheSameType) {
-    throw errors.badRequest("employee can't have more than one card per type");
+    throw errorUtils.badRequestError("employee can't have more than one card per type");
   }
 }
 
 async function validateCompanyExistence(apiKey: string) {
   const company = await companyRepository.findByApiKey(apiKey);
   if (!company) {
-    throw errors.notFound("company not found");
+    throw errorUtils.notFoundError("company not found");
   }
   
   return company;
@@ -44,7 +44,7 @@ async function validateEmployeeExistence(employeeId: number) {
   const employee = await employeeRepository.findById(employeeId);
 
   if (!employee) {
-    throw errors.notFound("employee not found");
+    throw errorUtils.notFoundError("employee not found");
   }
 
   return employee;

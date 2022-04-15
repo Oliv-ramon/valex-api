@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 
-import * as errors from "../utils/errorUtils.js"
+import * as errorUtils from "../utils/errorUtils.js"
 
 export default function schemaValidationMiddleware(schema) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -10,7 +10,7 @@ export default function schemaValidationMiddleware(schema) {
       const errorMessages = validation.error.details.map(({message}) => message).join(", ");
       const errorMessage = `Error(s): ${errorMessages}`;
 
-      throw errors.unprocessableEntity(errorMessage);
+      throw errorUtils.unprocessableEntityError(errorMessage);
     }
 
     next();
