@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 
 import * as errors from "../utils/errorUtils.js"
 
-export default async function schemaValidationMiddleware(schema) {
+export default function schemaValidationMiddleware(schema) {
   return (req: Request, res: Response, next: NextFunction) => {
     const validation = schema.validate(req.body, { abortEarly: false });
 

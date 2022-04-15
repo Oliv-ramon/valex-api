@@ -1,15 +1,15 @@
 export function badRequest(message: string) {
-  return { typeCode: 409, message };
+  return { type: "badRequest", message };
 }
 
 export function notFound(message: string) {
-  return { typeCode: 404, message };
+  return { type: "notFound", message };
 }
 
 export function unprocessableEntity(message: string) {
-  return { typeCode: 422, message };
+  return { type: "unprocessableEntity", message };
 }
 
 export function unauthorized(message: string) {
-  return { typeCode: 401, message };
+  return { type: "unauthorized", message };
 }
