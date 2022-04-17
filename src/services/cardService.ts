@@ -18,23 +18,33 @@ export async function create({ apiKey, card }) {
   delete card.flag;
 
   const cardWithDefaultData = addDefaultData(card, employeeName);
+  const cardToSend = { ...cardWithDefaultData };
+
+  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10)
   
   await cardRepository.insert(cardWithDefaultData);
+
+  return cardToSend;
+}
+
+export async function activate({ cardId, CVV, password }) {
+  const card = await validateCardExistence(cardId);
+
+  await validateExpirationDate(card.expirationDate);
+
+  validateCardActivation(card.isBlocked);
+
+  validateCVV(CVV, card.securityCode);
+
+  validatePasswordFormat(password);
+  
+  await cardRepository.update(cardId, {
+    isBlocked: false,
+    password: bcrypt.hashSync(password, 10),
+  })
 }
   
-  async function validateCardType({ type, employeeId }) {
-  const cardTypes = [
-    "groceries",
-    "restaurants",
-    "transport",
-    "education",
-    "health",
-  ];
-
-  if (!cardTypes.includes(type)) {
-    throw errorUtils.badRequestError("card type must be in [groceries, restaurants, transport, education, health]");
-  }
-
+async function validateCardType({ type, employeeId }) {
   const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
 
   if (cardWithTheSameType) {
@@ -72,7 +82,7 @@ function addDefaultData(card, employeeName: string) {
     ...card,
     number: faker.finance.creditCardNumber("#### #### #### ####"),
     cardholderName: formatEmployeeName(employeeName),
-    securityCode: bcrypt.hashSync(faker.finance.creditCardCVV(), 10),
+    securityCode: faker.finance.creditCardCVV(),
     expirationDate: dayjs().add(5, "years").format("MM/YY"),
     isVirtual: false,
     isBlocked: true,
@@ -98,4 +108,55 @@ function formatEmployeeName(employeeName: string) {
   });
 
   return abreviatedAndUppercasedNames.join(" ");
+}
+
+async function validateCardExistence(cardId: number) {
+  const card = await cardRepository.findById(cardId);
+
+  if (!card) {
+    throw errorUtils.notFoundError("card not found");
+  }
+
+  return card;
+}
+
+async function validateExpirationDate(expirationDate: string) {
+  const [expirationMonth, expirationYear] = expirationDate.split("/");
+  const formatedExpirationDate = `20${expirationYear}-${expirationMonth}-01`;
+
+  const timeToExpiration = dayjs(formatedExpirationDate).diff(dayjs());
+
+  if (timeToExpiration < 0) {
+    throw errorUtils.badRequestError("the expiration date has been exceeded");
+  }
+}
+
+function validateCVV(CVV: string, CVVOnDb: string) {
+  const isTheSame = bcrypt.compareSync(CVV, CVVOnDb);
+
+  if (!isTheSame) {
+    throw errorUtils.unauthorizedError("security code is incorrect");
+  }
+}
+
+function validateCardActivation(isBlocked: boolean) {
+  if(!isBlocked) {
+    throw errorUtils.badRequestError("this card is already active")
+  }
+}
+
+function validatePasswordFormat(password: string) {
+  if (password.length !==  4) {
+    throw errorUtils.badRequestError("password must have included just 4 digits");
+  }
+
+  const justHaveNumbers = Array
+    .from(password)
+    .every(item => {
+      return parseInt(item) % 1 === 0;
+    }); 
+  
+  if (!justHaveNumbers) {
+    throw errorUtils.badRequestError("password must have included just 4 digits");
+  }
 }
