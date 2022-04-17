@@ -6,6 +6,7 @@ import * as errorUtils from "../utils/errorUtils.js";
 import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
+import * as rechargeRepository from "../repositories/rechargeRepository.js";
 
 export async function create({ apiKey, card }) {
   await validateCompanyExistence(apiKey);
@@ -30,7 +31,7 @@ export async function create({ apiKey, card }) {
 export async function activate({ cardId, CVV, password }) {
   const card = await validateCardExistence(cardId);
 
-  await validateExpirationDate(card.expirationDate);
+  validateExpirationDate(card.expirationDate);
 
   validateCardActivation(card.isBlocked);
 
@@ -42,6 +43,14 @@ export async function activate({ cardId, CVV, password }) {
     isBlocked: false,
     password: bcrypt.hashSync(password, 10),
   })
+}
+
+export async function recharge({ cardId, amount }) {
+  const card = await validateCardExistence(cardId);
+
+  validateExpirationDate(card.expirationDate);
+
+  await rechargeRepository.insert({ cardId, amount });
 }
   
 async function validateCardType({ type, employeeId }) {
@@ -120,7 +129,7 @@ async function validateCardExistence(cardId: number) {
   return card;
 }
 
-async function validateExpirationDate(expirationDate: string) {
+function validateExpirationDate(expirationDate: string) {
   const [expirationMonth, expirationYear] = expirationDate.split("/");
   const formatedExpirationDate = `20${expirationYear}-${expirationMonth}-01`;
 
