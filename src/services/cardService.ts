@@ -8,7 +8,7 @@ import * as companyRepository from "../repositories/companyRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 
 export async function create({ apiKey, card }) {
-  const company = await validateCompanyExistence(apiKey);
+  await validateCompanyExistence(apiKey);
 
   const employeeName = await validateEmployeeExistence(card.employeeId);
 
@@ -18,7 +18,8 @@ export async function create({ apiKey, card }) {
   delete card.flag;
 
   const cardWithDefaultData = addDefaultData(card, employeeName);
-  console.log(cardWithDefaultData)
+  
+  await cardRepository.insert(cardWithDefaultData);
 }
   
   async function validateCardType({ type, employeeId }) {
@@ -31,7 +32,7 @@ export async function create({ apiKey, card }) {
   ];
 
   if (!cardTypes.includes(type)) {
-    throw errorUtils.unprocessableEntityError("card type must be in [groceries, restaurants, transport, education, health]");
+    throw errorUtils.badRequestError("card type must be in [groceries, restaurants, transport, education, health]");
   }
 
   const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
@@ -43,11 +44,10 @@ export async function create({ apiKey, card }) {
 
 async function validateCompanyExistence(apiKey: string) {
   const company = await companyRepository.findByApiKey(apiKey);
+
   if (!company) {
     throw errorUtils.notFoundError("company not found");
   }
-  
-  return company;
 }
 
 async function validateEmployeeExistence(employeeId: number) {
