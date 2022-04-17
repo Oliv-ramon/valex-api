@@ -21,20 +21,14 @@ export async function create({ apiKey, card }) {
   
   await cardRepository.insert(cardWithDefaultData);
 }
+
+export async function activate({ cardId, CVV, password }) {
+  const card = await validateCardExistence(cardId);
+
+  await validateExpirationDate(card.expirationDate);
+}
   
-  async function validateCardType({ type, employeeId }) {
-  const cardTypes = [
-    "groceries",
-    "restaurants",
-    "transport",
-    "education",
-    "health",
-  ];
-
-  if (!cardTypes.includes(type)) {
-    throw errorUtils.badRequestError("card type must be in [groceries, restaurants, transport, education, health]");
-  }
-
+async function validateCardType({ type, employeeId }) {
   const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
 
   if (cardWithTheSameType) {
@@ -98,4 +92,25 @@ function formatEmployeeName(employeeName: string) {
   });
 
   return abreviatedAndUppercasedNames.join(" ");
+}
+
+async function validateCardExistence(cardId: number) {
+  const card = await cardRepository.findById(cardId);
+
+  if (!card) {
+    throw errorUtils.notFoundError("card not found");
+  }
+
+  return card;
+}
+
+async function validateExpirationDate(expirationDate: string) {
+  const [expirationMonth, expirationYear] = expirationDate.split("/");
+  const formatedExpirationDate = `20${expirationYear}-${expirationMonth}-01`;
+
+  const timeToExpiration = dayjs(formatedExpirationDate).diff(dayjs());
+
+  if (timeToExpiration < 0) {
+    throw errorUtils.badRequestError("the expiration date has been exceeded");
+  }
 }
