@@ -19,3 +19,21 @@ export async function activate(req: Request, res: Response) {
 
   res.sendStatus(200);
 }
+
+export async function recharge(req: Request, res: Response) {
+  const { amount } = req.body;
+  const { cardId } = req.params;
+  
+  await cardService.recharge({ cardId, amount });
+
+  res.sendStatus(200);
+}
+
+export async function purchase(req: Request, res: Response) {
+  const { amount, password } = req.body;
+  const { cardId, businessId } = req.params;
+  
+  await cardService.purchase({ cardId, businessId, amount, password });
+
+  res.sendStatus(200);
+}
