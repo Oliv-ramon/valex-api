@@ -50,7 +50,16 @@ export async function block(req: Request, res: Response) {
   const { cardId } = req.params;
   const { password } = req.body;
   
-  await cardService.block({ cardId, password });
+  await cardService.blockAndUnblock({ cardId, password, action: "block" });
+
+  res.sendStatus(200);
+}
+
+export async function unblock(req: Request, res: Response) {
+  const { cardId } = req.params;
+  const { password } = req.body;
+  
+  await cardService.blockAndUnblock({ cardId, password, action: "unblock" });
 
   res.sendStatus(200);
 }

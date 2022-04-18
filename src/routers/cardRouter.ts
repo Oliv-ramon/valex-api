@@ -16,5 +16,6 @@ cardRouter.patch("/cards/:cardId/activate", schemaValidationMiddleware(activatio
 cardRouter.post("/cards/:cardId/recharge", apiKeyValidationMiddleware, schemaValidationMiddleware(rechargeSchema), cardController.recharge);
 cardRouter.post("/cards/:cardId/purchase/:businessId", schemaValidationMiddleware(purchasePayloadSchema), cardController.purchase);
 cardRouter.patch("/cards/:cardId/block", schemaValidationMiddleware(blockingSchema), cardController.block);
+cardRouter.patch("/cards/:cardId/unblock", schemaValidationMiddleware(blockingSchema), cardController.unblock);
 
 export default cardRouter;

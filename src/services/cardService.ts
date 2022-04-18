@@ -79,16 +79,18 @@ export async function getStatement(cardId: number) {
   return statement;
 }
 
-export async function block({ cardId, password }) {
+export async function blockAndUnblock({ cardId, password, action }) {
   const card = await validateCardExistence(cardId);
 
   validateExpirationDate(card.expirationDate);
   
-  validateCardLock({ isBlocked: card.isBlocked, hasToBe: false });
+  const hasToBe = action === "block" ? false : true;
+  validateCardLock({ isBlocked: card.isBlocked, hasToBe });
 
   validatePassword({ password, storedPassword: card.password });
 
-  await cardRepository.update(cardId, { isBlocked: true });
+  const isBlocked = action === "block" ? true : false;
+  await cardRepository.update(cardId, { isBlocked });
 }
   
 async function validateCardType({ type, employeeId }) {
