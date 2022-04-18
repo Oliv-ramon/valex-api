@@ -122,7 +122,7 @@ export async function createVirtualCard({ originalCardId, flag, password }) {
 
   const cardWithDefaultData = addDefaultData({ card, employeeName, isVirtual: true });
   delete cardWithDefaultData.id;
-  
+
   const virtualCard = { ...cardWithDefaultData };  
 
   cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
@@ -130,6 +130,18 @@ export async function createVirtualCard({ originalCardId, flag, password }) {
   await cardRepository.insert(cardWithDefaultData);
 
   return virtualCard;
+}
+
+export async function deleteVirtualCard({ virtualCardId, password }) {
+  const card = await validateCardExistence(virtualCardId);
+
+  validateIsVirtual(card.isVirtual);
+
+  validateExpirationDate(card.expirationDate);
+
+  validatePassword({ password, storedPassword: card.password });
+
+  await cardRepository.remove(virtualCardId);
 }
   
 async function validateCardType({ type, employeeId }) {
@@ -338,4 +350,10 @@ function formatTransactionTimeStamp(transactions) {
   });
 
   return formatedTransactions;
+}
+
+function validateIsVirtual(isVirtual) {
+  if (!isVirtual) {
+    throw errorUtils.badRequestError("this card isn't virtual");
+  }
 }
