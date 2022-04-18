@@ -33,6 +33,8 @@ export async function create({ apiKey, card }) {
 export async function activate({ cardId, CVV, password }) {
   const card = await validateCardExistence(cardId);
 
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
+
   validateExpirationDate(card.expirationDate);
 
   validateCardLock({ isBlocked: card.isBlocked, hasToBe: true });
@@ -135,7 +137,7 @@ export async function createVirtualCard({ originalCardId, flag, password }) {
 export async function deleteVirtualCard({ virtualCardId, password }) {
   const card = await validateCardExistence(virtualCardId);
 
-  validateIsVirtual(card.isVirtual);
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: true });
 
   validateExpirationDate(card.expirationDate);
 
@@ -188,7 +190,7 @@ function addDefaultData({ card, employeeName, isVirtual }) {
     expirationDate: dayjs().add(5, "years").format("MM/YY"),
     password: isVirtual ? card.password : null,
     isVirtual,
-    isBlocked: true,
+    isBlocked: isVirtual ? false : true,
   };
 
   return cardWithDefaultData;
@@ -352,8 +354,10 @@ function formatTransactionTimeStamp(transactions) {
   return formatedTransactions;
 }
 
-function validateIsVirtual(isVirtual) {
-  if (!isVirtual) {
-    throw errorUtils.badRequestError("this card isn't virtual");
+function validateIsVirtual({ isVirtual, hasToBe }) {
+  const errorMessage = hasToBe ? "this card isn't virtual" : "only non virtual cards can be  activated";
+
+  if (isVirtual !== hasToBe) {
+    throw errorUtils.badRequestError(errorMessage);
   }
 }
