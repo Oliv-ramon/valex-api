@@ -63,3 +63,12 @@ export async function unblock(req: Request, res: Response) {
 
   res.sendStatus(200);
 }
+
+export async function onlinePurchase(req: Request, res: Response) {
+  const { businessId } = req.params;
+  const { amount, cardDetails } = req.body;
+  
+  await cardService.onlinePurchase({ amount, cardDetails, businessId });
+
+  res.sendStatus(200);
+}
