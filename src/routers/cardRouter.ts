@@ -9,9 +9,13 @@ import cardSchema from "../schemas/cardSchema.js";
 import purchasePayloadSchema from "../schemas/purchasePayloadSchema.js";
 import onlinePurchasePayloadSchema from "../schemas/onlinePurchasePayloadSchema.js";
 import rechargeSchema from "../schemas/rechargeSchema.js";
+import virtualCardCreationSchema from "../schemas/virtualCardCreationSchema.js";
+import virtualCardDeletionSchema from "../schemas/virtualCardDeletionSchema.js";
 
 const cardRouter = Router();
 cardRouter.post("/cards", schemaValidationMiddleware(cardSchema), apiKeyValidationMiddleware, cardController.create);
+cardRouter.post("/cards/:originalCardId/virtual", schemaValidationMiddleware(virtualCardCreationSchema), cardController.createVirtualCard);
+cardRouter.delete("/cards/virtual/:virtualCardId", schemaValidationMiddleware(virtualCardDeletionSchema), cardController.deleteVirtualCard);
 cardRouter.get("/cards/:cardId/statement", cardController.getStatement);
 cardRouter.patch("/cards/:cardId/activate", schemaValidationMiddleware(activationDataSchema), cardController.activate);
 cardRouter.post("/cards/:cardId/recharge", apiKeyValidationMiddleware, schemaValidationMiddleware(rechargeSchema), cardController.recharge);

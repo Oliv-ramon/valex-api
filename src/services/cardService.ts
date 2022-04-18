@@ -20,10 +20,10 @@ export async function create({ apiKey, card }) {
   validateCardFlag(card.flag);
   delete card.flag;
 
-  const cardWithDefaultData = addDefaultData(card, employeeName);
+  const cardWithDefaultData = addDefaultData({ card, employeeName, isVirtual: false});
   const cardToSend = { ...cardWithDefaultData };
 
-  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10)
+  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
   
   await cardRepository.insert(cardWithDefaultData);
 
@@ -32,6 +32,8 @@ export async function create({ apiKey, card }) {
 
 export async function activate({ cardId, CVV, password }) {
   const card = await validateCardExistence(cardId);
+
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
 
   validateExpirationDate(card.expirationDate);
 
@@ -44,11 +46,13 @@ export async function activate({ cardId, CVV, password }) {
   await cardRepository.update(cardId, {
     isBlocked: false,
     password: bcrypt.hashSync(password, 10),
-  })
+  });
 }
 
 export async function recharge({ cardId, amount }) {
   const card = await validateCardExistence(cardId);
+
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
 
   validateExpirationDate(card.expirationDate);
 
@@ -57,6 +61,8 @@ export async function recharge({ cardId, amount }) {
 
 export async function purchase({ cardId, businessId, amount, password }) {
   const card = await validateCardExistence(cardId);
+
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
 
   validateExpirationDate(card.expirationDate);
 
@@ -106,9 +112,44 @@ export async function onlinePurchase({ amount, cardDetails, businessId }) {
 
   validateTypeMatch({ cardType: card.type, businessType: business.type });
 
-  await validateCardBalance({ cardId: card.id, amount});
+  const cardId = card.isVirtual ? card.originalCardId : card.id;
+  await validateCardBalance({ cardId, amount});
 
-  await paymentRepository.insert({ cardId: card.id, businessId, amount});
+  await paymentRepository.insert({ cardId, businessId, amount});
+}
+
+export async function createVirtualCard({ originalCardId, flag, password }) {
+  const card = await validateCardExistence(originalCardId);
+
+  validatePassword({ password, storedPassword: card.password});
+
+  validateCardFlag(flag);
+
+  const { fullName: employeeName } = await employeeRepository.findById(card.employeeId);
+
+  const cardWithDefaultData = addDefaultData({ card, employeeName, isVirtual: true });
+  delete cardWithDefaultData.id;
+
+  const virtualCard = { ...cardWithDefaultData };  
+  delete virtualCard.password;
+
+  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
+
+  await cardRepository.insert(cardWithDefaultData);
+
+  return virtualCard;
+}
+
+export async function deleteVirtualCard({ virtualCardId, password }) {
+  const card = await validateCardExistence(virtualCardId);
+
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: true });
+
+  validateExpirationDate(card.expirationDate);
+
+  validatePassword({ password, storedPassword: card.password });
+
+  await cardRepository.remove(virtualCardId);
 }
   
 async function validateCardType({ type, employeeId }) {
@@ -143,16 +184,19 @@ function validateCardFlag(flag: string) {
   }
 }
 
-function addDefaultData(card, employeeName: string) {
+function addDefaultData({ card, employeeName, isVirtual }) {
 
   const cardWithDefaultData = {
     ...card,
+    type: card.type,
+    originalCardId: isVirtual ? card.id : null,
     number: faker.finance.creditCardNumber("#### #### #### ####"),
     cardholderName: formatEmployeeName(employeeName),
     securityCode: faker.finance.creditCardCVV(),
     expirationDate: dayjs().add(5, "years").format("MM/YY"),
-    isVirtual: false,
-    isBlocked: true,
+    password: isVirtual ? card.password : null,
+    isVirtual,
+    isBlocked: isVirtual ? false : true,
   };
 
   return cardWithDefaultData;
@@ -314,4 +358,12 @@ function formatTransactionTimeStamp(transactions) {
   });
 
   return formatedTransactions;
+}
+
+function validateIsVirtual({ isVirtual, hasToBe }) {
+  const errorMessage = hasToBe ? "this card isn't virtual" : "this feature isn't allowed to virtual cards";
+
+  if (isVirtual !== hasToBe) {
+    throw errorUtils.badRequestError(errorMessage);
+  }
 }
