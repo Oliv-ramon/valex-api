@@ -62,6 +62,8 @@ export async function recharge({ cardId, amount }) {
 export async function purchase({ cardId, businessId, amount, password }) {
   const card = await validateCardExistence(cardId);
 
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
+
   validateExpirationDate(card.expirationDate);
 
   validateCardLock({ isBlocked: card.isBlocked, hasToBe: false });
@@ -110,9 +112,10 @@ export async function onlinePurchase({ amount, cardDetails, businessId }) {
 
   validateTypeMatch({ cardType: card.type, businessType: business.type });
 
-  await validateCardBalance({ cardId: card.id, amount});
+  const cardId = card.isVirtual ? card.originalCardId : card.id;
+  await validateCardBalance({ cardId, amount});
 
-  await paymentRepository.insert({ cardId: card.id, businessId, amount});
+  await paymentRepository.insert({ cardId, businessId, amount});
 }
 
 export async function createVirtualCard({ originalCardId, flag, password }) {
@@ -128,6 +131,7 @@ export async function createVirtualCard({ originalCardId, flag, password }) {
   delete cardWithDefaultData.id;
 
   const virtualCard = { ...cardWithDefaultData };  
+  delete virtualCard.password;
 
   cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
 
@@ -187,7 +191,7 @@ function addDefaultData({ card, employeeName, isVirtual }) {
     type: card.type,
     originalCardId: isVirtual ? card.id : null,
     number: faker.finance.creditCardNumber("#### #### #### ####"),
-    cardholderName: isVirtual ? employeeName : formatEmployeeName(employeeName),
+    cardholderName: formatEmployeeName(employeeName),
     securityCode: faker.finance.creditCardCVV(),
     expirationDate: dayjs().add(5, "years").format("MM/YY"),
     password: isVirtual ? card.password : null,
