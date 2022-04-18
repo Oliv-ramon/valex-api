@@ -60,6 +60,8 @@ export async function purchase({ cardId, businessId, amount, password }) {
 
   validateExpirationDate(card.expirationDate);
 
+  validateCardLock({ isBlocked: card.isBlocked, hasToBe: false });
+
   validatePassword({ password, storedPassword: card.password});
 
   const business = await validateBusiness(businessId);
@@ -91,6 +93,22 @@ export async function blockAndUnblock({ cardId, password, action }) {
 
   const isBlocked = action === "block" ? true : false;
   await cardRepository.update(cardId, { isBlocked });
+}
+
+export async function onlinePurchase({ amount, cardDetails, businessId }) {
+  const card = await validateCardDetails(cardDetails);
+
+  validateExpirationDate(card.expirationDate);
+
+  validateCardLock({ isBlocked: card.isBlocked, hasToBe: false });
+
+  const business = await validateBusiness(businessId);
+
+  validateTypeMatch({ cardType: card.type, businessType: business.type });
+
+  await validateCardBalance({ cardId: card.id, amount});
+
+  await paymentRepository.insert({ cardId: card.id, businessId, amount});
 }
   
 async function validateCardType({ type, employeeId }) {
@@ -169,6 +187,18 @@ async function validateCardExistence(cardId: number) {
   return card;
 }
 
+async function validateCardDetails({ number, cardholderName, expirationDate, securityCode }) {
+  const card = await cardRepository.findByCardDetails(number, cardholderName, expirationDate);
+
+  if (!card) {
+    throw errorUtils.notFoundError("card not found");
+  }
+
+  validateCVV( securityCode, card.securityCode);
+
+  return card;
+}
+
 function validateExpirationDate(expirationDate: string) {
   const [expirationMonth, expirationYear] = expirationDate.split("/");
   const formatedExpirationDate = `20${expirationYear}-${expirationMonth}-01`;
@@ -221,8 +251,8 @@ function validatePassword({ password, storedPassword}) {
 }
 
 async function validateBusiness(businessId: number) {
-  const business = businessRepository.findById(businessId);
-
+  const business = await businessRepository.findById(businessId);
+  
   if (!business) {
     throw errorUtils.notFoundError("business not found");
   }
@@ -230,7 +260,7 @@ async function validateBusiness(businessId: number) {
   return business;
 }
 
-function validateTypeMatch({ cardType, businessType }) {
+function validateTypeMatch({ cardType, businessType }) { 
   if (cardType !== businessType) {
     throw errorUtils.badRequestError("card type and business type don't match");
   }
