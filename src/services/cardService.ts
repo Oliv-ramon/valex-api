@@ -70,6 +70,14 @@ export async function purchase({ cardId, businessId, amount, password }) {
 
   await paymentRepository.insert({ cardId, businessId, amount });
 }
+
+export async function getStatement(cardId: number) {
+  await validateCardExistence(cardId);
+
+  const statement = buildStatement(cardId);
+
+  return statement;
+}
   
 async function validateCardType({ type, employeeId }) {
   const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
@@ -216,12 +224,48 @@ async function validateCardBalance({ cardId, amount }) {
   const recharges = await rechargeRepository.findByCardId(cardId);
   const payments = await paymentRepository.findByCardId(cardId);
 
+  const balance = calculateBalance({ recharges, payments });
+
+  if (amount > balance) {
+    throw errorUtils.badRequestError("card balance isn't enough");
+  }
+}
+
+function calculateBalance({ recharges, payments }) {
   let balance = 0;
 
   recharges.forEach(({ amount }) => balance += amount);
   payments.forEach(({ amount }) => balance -= amount);
 
-  if (amount > balance) {
-    throw errorUtils.badRequestError("card balance isn't enough");
-  }
+  return balance;
+}
+
+async function buildStatement(cardId: number) {
+  const recharges = await rechargeRepository.findByCardId(cardId);
+  const payments = await paymentRepository.findByCardId(cardId);
+
+  const balance = calculateBalance({ recharges, payments });
+  
+  const formatedRecharges = formatTransactionTimeStamp(recharges);
+  const formatedTransactions = formatTransactionTimeStamp(payments);
+  
+  return {
+    balance,
+    recharges: formatedRecharges,
+    transactions: formatedTransactions,
+  };
+}
+
+function formatTransactionTimeStamp(transactions) {
+  const formatedTransactions = transactions.map((transaction) => {
+    const date = transaction.timestamp.toISOString().split("T")[0];
+    const formatedTimestamp = dayjs(date).format("DD/MM/YYYY");
+
+    return {
+      ...transaction,
+      timestamp: formatedTimestamp,
+    }
+  });
+
+  return formatedTransactions;
 }
