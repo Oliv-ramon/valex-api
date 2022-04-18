@@ -8,7 +8,7 @@ export async function create(req: Request, res: Response) {
   
   const cardToSend = await cardService.create({ apiKey, card });
 
-  res.status(200).send(cardToSend);
+  res.status(201).send(cardToSend);
 }
 
 export async function activate(req: Request, res: Response) {
@@ -36,4 +36,12 @@ export async function purchase(req: Request, res: Response) {
   await cardService.purchase({ cardId, businessId, amount, password });
 
   res.sendStatus(200);
+}
+
+export async function getStatement(req: Request, res: Response) {
+  const { cardId } = req.params;
+  
+  const statement = await cardService.getStatement(parseInt(cardId));
+
+  res.status(200).send(statement);
 }
