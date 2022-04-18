@@ -45,3 +45,12 @@ export async function getStatement(req: Request, res: Response) {
 
   res.status(200).send(statement);
 }
+
+export async function block(req: Request, res: Response) {
+  const { cardId } = req.params;
+  const { password } = req.body;
+  
+  await cardService.block({ cardId, password });
+
+  res.sendStatus(200);
+}

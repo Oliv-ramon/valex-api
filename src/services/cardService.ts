@@ -35,7 +35,7 @@ export async function activate({ cardId, CVV, password }) {
 
   validateExpirationDate(card.expirationDate);
 
-  validateCardActivation(card.isBlocked);
+  validateCardLock({ isBlocked: card.isBlocked, hasToBe: true });
 
   validateCVV(CVV, card.securityCode);
 
@@ -77,6 +77,18 @@ export async function getStatement(cardId: number) {
   const statement = buildStatement(cardId);
 
   return statement;
+}
+
+export async function block({ cardId, password }) {
+  const card = await validateCardExistence(cardId);
+
+  validateExpirationDate(card.expirationDate);
+  
+  validateCardLock({ isBlocked: card.isBlocked, hasToBe: false });
+
+  validatePassword({ password, storedPassword: card.password });
+
+  await cardRepository.update(cardId, { isBlocked: true });
 }
   
 async function validateCardType({ type, employeeId }) {
@@ -174,9 +186,11 @@ function validateCVV(CVV: string, CVVOnDb: string) {
   }
 }
 
-function validateCardActivation(isBlocked: boolean) {
-  if(!isBlocked) {
-    throw errorUtils.badRequestError("this card is already active")
+function validateCardLock({ isBlocked, hasToBe }) {
+  const errorMessage = hasToBe ? "this card is already active" : "this card is already blocked";
+
+  if(isBlocked !== hasToBe) {
+    throw errorUtils.badRequestError(errorMessage);
   }
 }
 
