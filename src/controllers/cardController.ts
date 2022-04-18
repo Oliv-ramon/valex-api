@@ -72,3 +72,12 @@ export async function onlinePurchase(req: Request, res: Response) {
 
   res.sendStatus(200);
 }
+
+export async function createVirtualCard(req: Request, res: Response) {
+  const { originalCardId } = req.params;
+  const { flag, password } = req.body;
+  
+  const virtualCard = await cardService.createVirtualCard({ originalCardId, flag, password });
+
+  res.status(201).send(virtualCard);
+}

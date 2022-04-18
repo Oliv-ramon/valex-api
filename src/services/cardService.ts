@@ -20,10 +20,10 @@ export async function create({ apiKey, card }) {
   validateCardFlag(card.flag);
   delete card.flag;
 
-  const cardWithDefaultData = addDefaultData(card, employeeName);
+  const cardWithDefaultData = addDefaultData({ card, employeeName, isVirtual: false});
   const cardToSend = { ...cardWithDefaultData };
 
-  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10)
+  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
   
   await cardRepository.insert(cardWithDefaultData);
 
@@ -44,7 +44,7 @@ export async function activate({ cardId, CVV, password }) {
   await cardRepository.update(cardId, {
     isBlocked: false,
     password: bcrypt.hashSync(password, 10),
-  })
+  });
 }
 
 export async function recharge({ cardId, amount }) {
@@ -110,6 +110,27 @@ export async function onlinePurchase({ amount, cardDetails, businessId }) {
 
   await paymentRepository.insert({ cardId: card.id, businessId, amount});
 }
+
+export async function createVirtualCard({ originalCardId, flag, password }) {
+  const card = await validateCardExistence(originalCardId);
+
+  validatePassword({ password, storedPassword: card.password});
+
+  validateCardFlag(flag);
+
+  const { fullName: employeeName } = await employeeRepository.findById(card.employeeId);
+
+  const cardWithDefaultData = addDefaultData({ card, employeeName, isVirtual: true });
+  delete cardWithDefaultData.id;
+  
+  const virtualCard = { ...cardWithDefaultData };  
+
+  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
+
+  await cardRepository.insert(cardWithDefaultData);
+
+  return virtualCard;
+}
   
 async function validateCardType({ type, employeeId }) {
   const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
@@ -143,15 +164,18 @@ function validateCardFlag(flag: string) {
   }
 }
 
-function addDefaultData(card, employeeName: string) {
+function addDefaultData({ card, employeeName, isVirtual }) {
 
   const cardWithDefaultData = {
     ...card,
+    type: card.type,
+    originalCardId: isVirtual ? card.id : null,
     number: faker.finance.creditCardNumber("#### #### #### ####"),
-    cardholderName: formatEmployeeName(employeeName),
+    cardholderName: isVirtual ? employeeName : formatEmployeeName(employeeName),
     securityCode: faker.finance.creditCardCVV(),
     expirationDate: dayjs().add(5, "years").format("MM/YY"),
-    isVirtual: false,
+    password: isVirtual ? card.password : null,
+    isVirtual,
     isBlocked: true,
   };
 
