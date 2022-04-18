@@ -52,6 +52,8 @@ export async function activate({ cardId, CVV, password }) {
 export async function recharge({ cardId, amount }) {
   const card = await validateCardExistence(cardId);
 
+  validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
+
   validateExpirationDate(card.expirationDate);
 
   await rechargeRepository.insert({ cardId, amount });
@@ -355,7 +357,7 @@ function formatTransactionTimeStamp(transactions) {
 }
 
 function validateIsVirtual({ isVirtual, hasToBe }) {
-  const errorMessage = hasToBe ? "this card isn't virtual" : "only non virtual cards can be  activated";
+  const errorMessage = hasToBe ? "this card isn't virtual" : "this feature isn't allowed to virtual cards";
 
   if (isVirtual !== hasToBe) {
     throw errorUtils.badRequestError(errorMessage);
