@@ -27,7 +27,7 @@ You'll need a basic environment with NodeJS 15+ installed and PostgreSql install
 
 ### Installation
 
-**Cloning the Repository**
+#cloning the Repository
 
 ```
 $ git clone https://github.com/Oliv-ramon/valex-api
@@ -35,7 +35,7 @@ $ git clone https://github.com/Oliv-ramon/valex-api
 $ cd valex-api
 ```
 
-**Installing dependencies**
+#installing dependencies**
 
 ```
 $ npm install
