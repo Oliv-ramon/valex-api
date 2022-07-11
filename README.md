@@ -1,12 +1,12 @@
-# Valex-Api
+## Description
 
-A RESTful API that gives you the power to create, recharge, activate, block and delete a benefits card, it can also process purchases using these cards. This project has study porpose, so the context here is fictionary.
+A RESTful API that gives you the power to create, recharge, activate, block and delete a benefits card, it can also process purchases using these cards! This project has study porpose, so the context here is fictionary.
 
-### About this project
-
-This project is part of my portfolio, so any feedback about the project, code, or anything you can report that could make me a better developer will be welcome!
+## Motivation
 
 I build this project to validate my knowledge about RESTful APIs, typescript, DRY code concept, layered architecture and global error handling implementation.
+
+This project is part of my portfolio, so any feedback about the project, code, or anything you can report that could make me a better developer will be welcome!
 
 ### Technologies used in this project
 
@@ -23,16 +23,16 @@ I build this project to validate my knowledge about RESTful APIs, typescript, DR
 
 ### Prerequisites
 
-You'll need a basic environment with NodeJS 15+ installed. To use the database, you'll need to have MongoDB installed and running on your machine at the default port (27017).
+You'll need a basic environment with NodeJS 15+ installed and PostgreSql installed.
 
-### Installing
+### Installation
 
 **Cloning the Repository**
 
 ```
-$ git clone https://github.com/Oliv-ramon/MyWallet-Backend
+$ git clone https://github.com/Oliv-ramon/valex-api
 
-$ cd MyWallet-Backend
+$ cd valex-api
 ```
 
 **Installing dependencies**
@@ -41,9 +41,9 @@ $ cd MyWallet-Backend
 $ npm install
 ```
 
-### Running 
+### Run
 
-With all dependencies installed, the Database running and the environment properly configured, you can now run the server:
+You need a `.env` file just like the `.env.example`.
 
 ```
 $ npm run dev
