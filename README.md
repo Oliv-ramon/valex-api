@@ -27,14 +27,14 @@ You'll need a basic environment with NodeJS 15+ installed and PostgreSql install
 
 ### Installation
 
-```
+```bash
 # cloning the Repository
 $ git clone https://github.com/Oliv-ramon/valex-api
 
 $ cd valex-api
 ```
 
-```
+```bash
 # installing dependencies
 $ npm install
 ```
@@ -43,6 +43,6 @@ $ npm install
 
 You need a `.env` file just like the `.env.example`.
 
-```
+```bash
 $ npm run dev
 ```
