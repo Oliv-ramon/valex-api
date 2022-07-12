@@ -9,7 +9,7 @@ const cardSchema = joi.object({
     "education",
     "health"
   ),
-  flag: joi.string().required()
+  flag: "MASTERCARD"
 });
 
 export default cardSchema;

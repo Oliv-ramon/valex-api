@@ -24,53 +24,52 @@ export function validateCVV(CVV: string, CVVOnDb: string) {
 }
 
 export function validateCardLock({ isBlocked, hasToBe }) {
-  const errorMessage = hasToBe ? "this card is already active" : "this card is already blocked";
+  const errorMessage = hasToBe
+    ? "this card is already active"
+    : "this card is already blocked";
 
-  if(isBlocked !== hasToBe) {
+  if (isBlocked !== hasToBe) {
     throw errorUtils.badRequestError(errorMessage);
   }
 }
 
 export function validatePasswordFormat(password: string) {
-  if (password.length !==  4) {
-    throw errorUtils.badRequestError("password must have included just 4 digits");
+  if (password.length !== 4) {
+    throw errorUtils.badRequestError(
+      "password must have included just 4 digits"
+    );
   }
 
-  const justHaveNumbers = Array
-    .from(password)
-    .every(item => {
-      return parseInt(item) % 1 === 0;
-    }); 
-  
+  const justHaveNumbers = Array.from(password).every((item) => {
+    return parseInt(item) % 1 === 0;
+  });
+
   if (!justHaveNumbers) {
-    throw errorUtils.badRequestError("password must have included just 4 digits");
+    throw errorUtils.badRequestError(
+      "password must have included just 4 digits"
+    );
   }
 }
 
-export function validatePassword({ password, storedPassword}) {
+export function validatePassword({ password, storedPassword }) {
   const isTheSame = bcrypt.compareSync(password, storedPassword);
 
-  if(!isTheSame) {
+  if (!isTheSame) {
     throw errorUtils.unauthorizedError("the password is incorrect");
   }
 }
 
 export function validateIsVirtual({ isVirtual, hasToBe }) {
-  const errorMessage = hasToBe ? "this card isn't virtual" : "this feature isn't allowed to virtual cards";
+  const errorMessage = hasToBe
+    ? "this card isn't virtual"
+    : "this feature isn't allowed to virtual cards";
 
   if (isVirtual !== hasToBe) {
     throw errorUtils.badRequestError(errorMessage);
   }
 }
 
-export function validateCardFlag(flag: string) {
-  if (flag !== "MasterCard") {
-    throw errorUtils.badRequestError("the card flag must be MasterCard");
-  }
-}
-
 export function addDefaultData({ card, employeeName, isVirtual }) {
-
   const cardWithDefaultData = {
     ...card,
     type: card.type,
@@ -88,10 +87,10 @@ export function addDefaultData({ card, employeeName, isVirtual }) {
 }
 
 function formatEmployeeName(employeeName: string) {
-  const names = employeeName.split(" ").filter(str => str.length > 2);
+  const names = employeeName.split(" ").filter((str) => str.length > 2);
 
   const firstNameId = 0;
-  const lastNameId = names.length-1;
+  const lastNameId = names.length - 1;
 
   const abreviatedAndUppercasedNames = names.map((name, arrayId) => {
     const isLastOrFirstName = arrayId === firstNameId || arrayId === lastNameId;
@@ -99,7 +98,7 @@ function formatEmployeeName(employeeName: string) {
     if (isLastOrFirstName) {
       return name.toUpperCase();
     }
-    
+
     return name[0].toUpperCase();
   });
 
