@@ -6,7 +6,35 @@ import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 
-export async function create({ apiKey, card }) {
+interface CreateParams {
+  apiKey: string;
+  card: cardRepository.Card;
+}
+
+interface ActivateParams {
+  cardId: number;
+  CVV: string;
+  password: string;
+}
+
+type BlockOrUnblockParams = Pick<ActivateParams, "password" | "cardId"> & {
+  action: "block" | "unblock";
+};
+
+type CreateVirtualCardParams = Pick<ActivateParams, "password"> & {
+  originalCardId: number;
+};
+
+type DeleteVirtualCardParams = Pick<ActivateParams, "password"> & {
+  virtualCardId: number;
+};
+
+interface ValidateCardTypeParams {
+  employeeId: number;
+  type: cardRepository.TransactionTypes;
+}
+
+export async function create({ apiKey, card }: CreateParams) {
   await validateCompanyExistence(apiKey);
 
   const employeeName = await validateEmployeeExistence(card.employeeId);
@@ -19,15 +47,20 @@ export async function create({ apiKey, card }) {
     isVirtual: false,
   });
 
+  const unhashedSecurityCode = cardWithDefaultData.securityCode;
+
   cardWithDefaultData.securityCode = bcrypt.hashSync(
     cardWithDefaultData.securityCode,
     10
   );
 
-  return cardRepository.insert(cardWithDefaultData);
+  const createdCard = await cardRepository.insert(cardWithDefaultData);
+  createdCard.securityCode = unhashedSecurityCode;
+
+  return createdCard;
 }
 
-export async function activate({ cardId, CVV, password }) {
+export async function activate({ cardId, CVV, password }: ActivateParams) {
   const card = await validateCardExistence(cardId);
 
   cardUtils.validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
@@ -46,7 +79,11 @@ export async function activate({ cardId, CVV, password }) {
   });
 }
 
-export async function blockAndUnblock({ cardId, password, action }) {
+export async function blockAndUnblock({
+  cardId,
+  password,
+  action,
+}: BlockOrUnblockParams) {
   const card = await validateCardExistence(cardId);
 
   cardUtils.validateExpirationDate(card.expirationDate);
@@ -60,10 +97,14 @@ export async function blockAndUnblock({ cardId, password, action }) {
   await cardRepository.update(cardId, { isBlocked });
 }
 
-export async function createVirtualCard({ originalCardId, password }) {
+export async function createVirtualCard({
+  originalCardId,
+  password,
+}: CreateVirtualCardParams) {
   const card = await validateCardExistence(originalCardId);
 
-  cardUtils.validatePassword({ password, storedPassword: card.password });
+  card.password &&
+    cardUtils.validatePassword({ password, storedPassword: card.password });
   delete card.password;
 
   const { fullName: employeeName } = await employeeRepository.findById(
@@ -77,15 +118,23 @@ export async function createVirtualCard({ originalCardId, password }) {
   });
   delete cardWithDefaultData.id;
 
+  const unhashedSecurityCode = cardWithDefaultData.securityCode;
+
   cardWithDefaultData.securityCode = bcrypt.hashSync(
     cardWithDefaultData.securityCode,
     10
   );
 
-  return cardRepository.insert(cardWithDefaultData);
+  const cardCreated = await cardRepository.insert(cardWithDefaultData);
+  cardCreated.securityCode = unhashedSecurityCode;
+
+  return cardCreated;
 }
 
-export async function deleteVirtualCard({ virtualCardId, password }) {
+export async function deleteVirtualCard({
+  virtualCardId,
+  password,
+}: DeleteVirtualCardParams) {
   const card = await validateCardExistence(virtualCardId);
 
   cardUtils.validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: true });
@@ -98,7 +147,7 @@ export async function deleteVirtualCard({ virtualCardId, password }) {
   await cardRepository.remove(virtualCardId);
 }
 
-async function validateCardType({ type, employeeId }) {
+async function validateCardType({ type, employeeId }: ValidateCardTypeParams) {
   const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(
     type,
     employeeId

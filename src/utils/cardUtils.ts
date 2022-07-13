@@ -3,6 +3,26 @@ import bcrypt from "bcrypt";
 import faker from "@faker-js/faker";
 
 import * as errorUtils from "./errorUtils.js";
+import * as cardRepository from "../repositories/cardRepository.js";
+
+interface ValidateCardLockParams {
+  isBlocked: boolean;
+  hasToBe: boolean;
+}
+
+interface ValidatePasswordParams {
+  password: string;
+  storedPassword: string;
+}
+
+type ValidateIsVirtualParams = Pick<ValidateCardLockParams, "hasToBe"> & {
+  isVirtual: boolean;
+};
+
+type AddDefaultDataParams = Pick<ValidateIsVirtualParams, "isVirtual"> & {
+  card: cardRepository.Card;
+  employeeName: string;
+};
 
 export function validateExpirationDate(expirationDate: string) {
   const [expirationMonth, expirationYear] = expirationDate.split("/");
@@ -23,7 +43,10 @@ export function validateCVV(CVV: string, CVVOnDb: string) {
   }
 }
 
-export function validateCardLock({ isBlocked, hasToBe }) {
+export function validateCardLock({
+  isBlocked,
+  hasToBe,
+}: ValidateCardLockParams) {
   const errorMessage = hasToBe
     ? "this card is already active"
     : "this card is already blocked";
@@ -51,7 +74,10 @@ export function validatePasswordFormat(password: string) {
   }
 }
 
-export function validatePassword({ password, storedPassword }) {
+export function validatePassword({
+  password,
+  storedPassword,
+}: ValidatePasswordParams) {
   const isTheSame = bcrypt.compareSync(password, storedPassword);
 
   if (!isTheSame) {
@@ -59,7 +85,10 @@ export function validatePassword({ password, storedPassword }) {
   }
 }
 
-export function validateIsVirtual({ isVirtual, hasToBe }) {
+export function validateIsVirtual({
+  isVirtual,
+  hasToBe,
+}: ValidateIsVirtualParams) {
   const errorMessage = hasToBe
     ? "this card isn't virtual"
     : "this feature isn't allowed to virtual cards";
@@ -69,7 +98,11 @@ export function validateIsVirtual({ isVirtual, hasToBe }) {
   }
 }
 
-export function addDefaultData({ card, employeeName, isVirtual }) {
+export function addDefaultData({
+  card,
+  employeeName,
+  isVirtual,
+}: AddDefaultDataParams) {
   const cardWithDefaultData = {
     ...card,
     type: card.type,

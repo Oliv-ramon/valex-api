@@ -15,7 +15,7 @@ export async function activate(req: Request, res: Response) {
   const { CVV, password } = req.body;
   const { cardId } = req.params;
 
-  await cardService.activate({ cardId, CVV, password });
+  await cardService.activate({ cardId: +cardId, CVV, password });
 
   res.sendStatus(200);
 }

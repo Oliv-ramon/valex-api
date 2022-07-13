@@ -1,5 +1,3 @@
-import dayjs from "dayjs";
-
 import * as errorUtils from "../utils/errorUtils.js";
 import * as cardUtils from "../utils/cardUtils.js";
 import * as transactionUtils from "../utils/transactionUtils.js";
@@ -9,7 +7,28 @@ import * as rechargeRepository from "../repositories/rechargeRepository.js";
 import * as businessRepository from "../repositories/businessRepository.js";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 
-export async function recharge({ cardId, amount }) {
+interface RechargeParams {
+  cardId: number;
+  amount: number;
+}
+
+type PurchaseParams = RechargeParams & {
+  businessId: number;
+  password: string;
+};
+
+type CardDetails = Pick<
+  cardRepository.Card,
+  "number" | "cardholderName" | "securityCode" | "expirationDate"
+>;
+
+type OnlinePurchaseParams = Pick<PurchaseParams, "amount" | "businessId"> & {
+  cardDetails: CardDetails;
+};
+
+type ValidateCardBalanceParams = RechargeParams;
+
+export async function recharge({ cardId, amount }: RechargeParams) {
   const card = await cardService.validateCardExistence(cardId);
 
   cardUtils.validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
@@ -19,7 +38,12 @@ export async function recharge({ cardId, amount }) {
   await rechargeRepository.insert({ cardId, amount });
 }
 
-export async function purchase({ cardId, businessId, amount, password }) {
+export async function purchase({
+  cardId,
+  businessId,
+  amount,
+  password,
+}: PurchaseParams) {
   const card = await cardService.validateCardExistence(cardId);
 
   cardUtils.validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
@@ -28,13 +52,16 @@ export async function purchase({ cardId, businessId, amount, password }) {
 
   cardUtils.validateCardLock({ isBlocked: card.isBlocked, hasToBe: false });
 
-  cardUtils.validatePassword({ password, storedPassword: card.password});
+  cardUtils.validatePassword({ password, storedPassword: card.password });
 
   const business = await validateBusiness(businessId);
 
-  transactionUtils.validateTypeMatch({ cardType: card.type, businessType: business.type });
+  transactionUtils.validateTypeMatch({
+    cardType: card.type,
+    businessType: business.type,
+  });
 
-  await validateCardBalance({ cardId: card.id, amount});
+  await validateCardBalance({ cardId: card.id, amount });
 
   await paymentRepository.insert({ cardId, businessId, amount });
 }
@@ -47,7 +74,11 @@ export async function getStatement(cardId: number) {
   return statement;
 }
 
-export async function onlinePurchase({ amount, cardDetails, businessId }) {
+export async function onlinePurchase({
+  amount,
+  cardDetails,
+  businessId,
+}: OnlinePurchaseParams) {
   const card = await validateCardDetails(cardDetails);
 
   cardUtils.validateExpirationDate(card.expirationDate);
@@ -56,12 +87,15 @@ export async function onlinePurchase({ amount, cardDetails, businessId }) {
 
   const business = await validateBusiness(businessId);
 
-  transactionUtils.validateTypeMatch({ cardType: card.type, businessType: business.type });
+  transactionUtils.validateTypeMatch({
+    cardType: card.type,
+    businessType: business.type,
+  });
 
   const cardId = card.isVirtual ? card.originalCardId : card.id;
-  await validateCardBalance({ cardId, amount});
+  await validateCardBalance({ cardId, amount });
 
-  await paymentRepository.insert({ cardId, businessId, amount});
+  await paymentRepository.insert({ cardId, businessId, amount });
 }
 
 async function buildStatement(cardId: number) {
@@ -69,10 +103,12 @@ async function buildStatement(cardId: number) {
   const payments = await paymentRepository.findByCardId(cardId);
 
   const balance = transactionUtils.calculateBalance({ recharges, payments });
-  
-  const formatedRecharges = transactionUtils.formatTransactionTimeStamp(recharges);
-  const formatedTransactions = transactionUtils.formatTransactionTimeStamp(payments);
-  
+
+  const formatedRecharges =
+    transactionUtils.formatTransactionTimeStamp(recharges);
+  const formatedTransactions =
+    transactionUtils.formatTransactionTimeStamp(payments);
+
   return {
     balance,
     recharges: formatedRecharges,
@@ -82,7 +118,7 @@ async function buildStatement(cardId: number) {
 
 async function validateBusiness(businessId: number) {
   const business = await businessRepository.findById(businessId);
-  
+
   if (!business) {
     throw errorUtils.notFoundError("business not found");
   }
@@ -90,7 +126,10 @@ async function validateBusiness(businessId: number) {
   return business;
 }
 
-async function validateCardBalance({ cardId, amount }) {
+async function validateCardBalance({
+  cardId,
+  amount,
+}: ValidateCardBalanceParams) {
   const recharges = await rechargeRepository.findByCardId(cardId);
   const payments = await paymentRepository.findByCardId(cardId);
 
@@ -101,14 +140,23 @@ async function validateCardBalance({ cardId, amount }) {
   }
 }
 
-async function validateCardDetails({ number, cardholderName, expirationDate, securityCode }) {
-  const card = await cardRepository.findByCardDetails(number, cardholderName, expirationDate);
+async function validateCardDetails({
+  number,
+  cardholderName,
+  expirationDate,
+  securityCode,
+}: CardDetails) {
+  const card = await cardRepository.findByCardDetails(
+    number,
+    cardholderName,
+    expirationDate
+  );
 
   if (!card) {
     throw errorUtils.notFoundError("card not found");
   }
 
-  cardUtils.validateCVV( securityCode, card.securityCode);
+  cardUtils.validateCVV(securityCode, card.securityCode);
 
   return card;
 }
