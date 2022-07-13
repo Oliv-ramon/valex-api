@@ -6,27 +6,61 @@ import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 
-export async function create({ apiKey, card }) {
+interface CreateParams {
+  apiKey: string;
+  card: cardRepository.Card;
+}
+
+interface ActivateParams {
+  cardId: number;
+  CVV: string;
+  password: string;
+}
+
+type BlockOrUnblockParams = Pick<ActivateParams, "password" | "cardId"> & {
+  action: "block" | "unblock";
+};
+
+type CreateVirtualCardParams = Pick<ActivateParams, "password"> & {
+  originalCardId: number;
+};
+
+type DeleteVirtualCardParams = Pick<ActivateParams, "password"> & {
+  virtualCardId: number;
+};
+
+interface ValidateCardTypeParams {
+  employeeId: number;
+  type: cardRepository.TransactionTypes;
+}
+
+export async function create({ apiKey, card }: CreateParams) {
   await validateCompanyExistence(apiKey);
 
   const employeeName = await validateEmployeeExistence(card.employeeId);
 
   await validateCardType(card);
-  
-  cardUtils.validateCardFlag(card.flag);
-  delete card.flag;
 
-  const cardWithDefaultData = cardUtils.addDefaultData({ card, employeeName, isVirtual: false});
-  const cardToSend = { ...cardWithDefaultData };
+  const cardWithDefaultData = cardUtils.addDefaultData({
+    card,
+    employeeName,
+    isVirtual: false,
+  });
 
-  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
-  
-  await cardRepository.insert(cardWithDefaultData);
+  const unhashedSecurityCode = cardWithDefaultData.securityCode;
 
-  return cardToSend;
+  cardWithDefaultData.securityCode = bcrypt.hashSync(
+    cardWithDefaultData.securityCode,
+    10
+  );
+
+  const createdCard = await cardRepository.insert(cardWithDefaultData);
+  createdCard.securityCode = unhashedSecurityCode;
+
+  return createdCard;
 }
 
-export async function activate({ cardId, CVV, password }) {
+export async function activate({ cardId, CVV, password }: ActivateParams) {
   const card = await validateCardExistence(cardId);
 
   cardUtils.validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: false });
@@ -38,18 +72,22 @@ export async function activate({ cardId, CVV, password }) {
   cardUtils.validateCVV(CVV, card.securityCode);
 
   cardUtils.validatePasswordFormat(password);
-  
+
   await cardRepository.update(cardId, {
     isBlocked: false,
     password: bcrypt.hashSync(password, 10),
   });
 }
 
-export async function blockAndUnblock({ cardId, password, action }) {
+export async function blockAndUnblock({
+  cardId,
+  password,
+  action,
+}: BlockOrUnblockParams) {
   const card = await validateCardExistence(cardId);
 
   cardUtils.validateExpirationDate(card.expirationDate);
-  
+
   const hasToBe = action === "block" ? false : true;
   cardUtils.validateCardLock({ isBlocked: card.isBlocked, hasToBe });
 
@@ -59,45 +97,66 @@ export async function blockAndUnblock({ cardId, password, action }) {
   await cardRepository.update(cardId, { isBlocked });
 }
 
-export async function createVirtualCard({ originalCardId, flag, password }) {
+export async function createVirtualCard({
+  originalCardId,
+  password,
+}: CreateVirtualCardParams) {
   const card = await validateCardExistence(originalCardId);
 
-  cardUtils.validatePassword({ password, storedPassword: card.password});
+  card.password &&
+    cardUtils.validatePassword({ password, storedPassword: card.password });
+  delete card.password;
 
-  cardUtils.validateCardFlag(flag);
+  const { fullName: employeeName } = await employeeRepository.findById(
+    card.employeeId
+  );
 
-  const { fullName: employeeName } = await employeeRepository.findById(card.employeeId);
-
-  const cardWithDefaultData = cardUtils.addDefaultData({ card, employeeName, isVirtual: true });
+  const cardWithDefaultData = cardUtils.addDefaultData({
+    card,
+    employeeName,
+    isVirtual: true,
+  });
   delete cardWithDefaultData.id;
 
-  const virtualCard = { ...cardWithDefaultData };  
-  delete virtualCard.password;
+  const unhashedSecurityCode = cardWithDefaultData.securityCode;
 
-  cardWithDefaultData.securityCode = bcrypt.hashSync(cardWithDefaultData.securityCode,  10);
+  cardWithDefaultData.securityCode = bcrypt.hashSync(
+    cardWithDefaultData.securityCode,
+    10
+  );
 
-  await cardRepository.insert(cardWithDefaultData);
+  const cardCreated = await cardRepository.insert(cardWithDefaultData);
+  cardCreated.securityCode = unhashedSecurityCode;
 
-  return virtualCard;
+  return cardCreated;
 }
 
-export async function deleteVirtualCard({ virtualCardId, password }) {
+export async function deleteVirtualCard({
+  virtualCardId,
+  password,
+}: DeleteVirtualCardParams) {
   const card = await validateCardExistence(virtualCardId);
 
   cardUtils.validateIsVirtual({ isVirtual: card.isVirtual, hasToBe: true });
 
   cardUtils.validateExpirationDate(card.expirationDate);
 
-  cardUtils.validatePassword({ password, storedPassword: card.password });
+  card.password &&
+    cardUtils.validatePassword({ password, storedPassword: card.password });
 
   await cardRepository.remove(virtualCardId);
 }
-  
-async function validateCardType({ type, employeeId }) {
-  const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(type, employeeId);
+
+async function validateCardType({ type, employeeId }: ValidateCardTypeParams) {
+  const cardWithTheSameType = await cardRepository.findByTypeAndEmployeeId(
+    type,
+    employeeId
+  );
 
   if (cardWithTheSameType) {
-    throw errorUtils.badRequestError("employee can't have more than one card per type");
+    throw errorUtils.badRequestError(
+      "employee can't have more than one card per type"
+    );
   }
 }
 

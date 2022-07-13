@@ -1,3 +1,8 @@
+export interface AppError {
+  type: "badRequest" | "notFound" | "unprocessableEntity" | "unauthorized";
+  message: string;
+}
+
 export function badRequestError(message: string) {
   return { type: "badRequest", message };
 }

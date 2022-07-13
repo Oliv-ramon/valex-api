@@ -8,7 +8,7 @@ import onlinePurchasePayloadSchema from "../schemas/onlinePurchasePayloadSchema.
 import rechargeSchema from "../schemas/rechargeSchema.js";
 
 const transactionRouter = Router();
-transactionRouter.get("/transactions/:cardId/statement", transactionController.getStatement);
+transactionRouter.get("/transactions/:cardId/balance", transactionController.getStatement);
 transactionRouter.post("/transactions/:cardId/recharge", apiKeyValidationMiddleware, schemaValidationMiddleware(rechargeSchema), transactionController.createRecharge);
 transactionRouter.post("/transactions/:cardId/purchase/:businessId", schemaValidationMiddleware(purchasePayloadSchema), transactionController.CreatePurchase);
 transactionRouter.post("/transactions/purchase/online/:businessId", schemaValidationMiddleware(onlinePurchasePayloadSchema), transactionController.createOnlinePurchase);
