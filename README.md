@@ -1,17 +1,19 @@
+# 💳 Valex-Api
+
 <details>
   <summary style="font-size: 19px;">
   Table of Content
     
   </summary>
 
-- [Description](#description)
-- [Motivation](#motivation)
-- [Technologies](#technologies)
-- [Getting Started](#getting-started)
+- [Description](#-description)
+- [Motivation](#-motivation)
+- [Technologies](#-technologies)
+- [Getting Started](#-getting-started)
   - [Installation](#installation)
   - [Creating the database](#creating-the-database)
   - [Running](#running)
-- [Documentation](#documentation)
+- [Documentation](#-documentation)
   - [POST /cards](#-post-cards)
   - [PATCH /cards/:cardId/activate](#patch-cardscardidactivate)
   - [PATCH /cards/:cardId/block](#patch-cardscardidblock)
@@ -25,21 +27,19 @@
 
 </details>
 
-<br>
-
-## Description
+## 📝 Description
 
 A RESTful API that gives you the power to create, recharge, activate, block, and delete a benefits card, it can also process purchases using these cards! This project has a study purpose, so the context here is fictionary.
 
 In the API context, we have pre-signed companies with their employees and some business where employees can spend. Companies can create and recharge benefit cards for their employees. The employee can activate and block their cards, and create and delete a virtual card to their original card for online purchases.
 
-## Motivation
+## 🎯 Motivation
 
 I build this project to test my knowledge about RESTful APIs, typescript, DRY code concept, layered architecture and global error handling usage.
 
 This project is part of my portfolio, so any feedback about the project, code, or anything you can report that could make me a better developer will be welcome!
 
-## Technologies
+## 💻 Technologies
 
 - NodeJs
 - Express
@@ -50,7 +50,7 @@ This project is part of my portfolio, so any feedback about the project, code, o
 - Dayjs
 - FakerJs
 
-## Features
+## ✨ Features
 
 - [x] [Create a card](#post-cards)
 - [x] [Activate a card](#patch-cardscardidactivate)
@@ -63,7 +63,7 @@ This project is part of my portfolio, so any feedback about the project, code, o
 - [x] [Make a purchase with a card on a business](#post-transactionscardidpurchasebusinessid)
 - [x] [Make an online purchase](#post-transactionspurchaseonlinebusinessid)
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -99,7 +99,7 @@ You need a `.env` file just like the `.env.example`.
 $ npm run dev
 ```
 
-## Documentation
+## 📚 Documentation
 
 The schemas of the bodies can be found in the schemas folder.
 
